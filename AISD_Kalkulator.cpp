@@ -44,9 +44,9 @@ public:
 		std::cin.getline(temp, MAXLENGTH);
 		this->size = std::strlen(temp);
 
-		for (int i = 0; temp[i] != '.' && temp[i] != '\0'; i++) {
-			temp[i] = std::toupper(temp[i]);
-		}
+		//for (int i = 0; temp[i] != '.' && temp[i] != '\0'; i++) {
+		//	temp[i] = std::toupper(temp[i]);
+		//}
 
 		delete[] buffer;
 		buffer = new char[this->size + 1];
@@ -102,42 +102,40 @@ public:
 	}
 };
 
-class Element {
+class ElementString {
 public:
 	MyString data;
-	Element* next;
+	ElementString* next;
 
-	Element(const MyString& data, Element* next = nullptr) {
-    this->data = data;
-    this->next = next;
-	}
+	ElementString(const MyString& data, ElementString* next = nullptr) 
+		: data(data), next(next) {}
 };
 
-class Stack {
+class StackString {
 private:
-	Element* top;
+	ElementString* top;
 
 public:
-	Stack() : top(nullptr) {}
+	StackString() : top(nullptr) {}
 
-	~Stack() {
+	~StackString() {
 		while (!isEmpty()) {
 			pop();
 		}
 	}
 
 	void push(const MyString& value) {
-		Element* newElement = new Element(value, top);
+		ElementString* newElement = new ElementString(value, top);
 		top = newElement;
 	}
 
 	MyString pop() {
 		if (isEmpty()) {
-			std::cerr << "Stack underflow!" << std::endl;
+			//std::cerr << "Stack underflow!" << std::endl;
 			return MyString();
 		}
 		else {
-			Element* temp = top;
+			ElementString* temp = top;
 			top = top->next;
 			MyString value(temp->data);
 			delete temp;
@@ -159,8 +157,8 @@ public:
 		return top == nullptr;
 	}
 
-	friend std::ostream& operator<<(std::ostream& out, const Stack& stack) {
-		Element* current = stack.top;
+	friend std::ostream& operator<<(std::ostream& out, const StackString& stack) {
+		ElementString* current = stack.top;
 		while (current != nullptr) {
 			out << current->data << std::endl;
 			current = current->next;
@@ -168,6 +166,70 @@ public:
 		return out;
 	}
 
+};
+
+class StackInt {
+private:
+	struct Element {
+		int data;
+		Element* next;
+
+		Element(int data, Element* next = nullptr)
+			: data(data), next(next) {}
+	};
+
+	Element* top;
+
+public:
+	StackInt() : top(nullptr) {}
+
+	~StackInt() {
+		while (!isEmpty()) {
+			pop();
+		}
+	}
+
+	void push(int value) {
+		Element* newElement = new Element(value, top);
+		top = newElement;
+	}
+
+	int pop() {
+		if (isEmpty()) {
+			//std::cerr << "Stack underflow!" << std::endl;
+			return 0;
+		}
+		else {
+			Element* temp = top;
+			top = top->next;
+			int value = temp->data;
+			delete temp;
+			return value;
+		}
+	}
+
+	int peek() const {
+		if (isEmpty()) {
+			std::cerr << "Stack is empty!" << std::endl;
+			return 0;
+		}
+		else {
+			return top->data;
+		}
+	}
+
+	bool isEmpty() const {
+		return top == nullptr;
+	}
+
+	void printStack() const {
+		Element* current = top;
+		while (current != nullptr) {
+			std::cout << current->data << " ";
+			current = current->next;
+		}
+		std::cout << std::endl;
+	}
 };
 
 bool isFunction(const MyString& s) {
@@ -208,7 +270,7 @@ int precedence(char c) {
 }
 
 MyString toONP(const MyString& input) {
-	Stack operators;
+	StackString operators;
 	MyString output;
 	MyString currentWord;
 
@@ -256,22 +318,78 @@ MyString toONP(const MyString& input) {
 	return output;
 }
 
-/*int calculate(MyString onp) {
-	int result = 0;
-	
+void calculate(MyString onp) {
+	StackInt operands;
+
 	for (int i = 0; i < onp.length(); i++) {
-		
+
+		if (isNumber(onp[i])) {
+			int currentNumber = ((int)onp[i] - 48);
+			while (onp[i + 1] != ' ') {
+				++i;
+				currentNumber = (currentNumber * 10) + ((int)onp[i] - 48);
+			}
+			operands.push(currentNumber);
+		}
+
+		if (isOperator(onp[i])) {
+			char o = onp[i];
+			std::cout << o << " ";
+			operands.printStack();
+			int x = operands.pop();
+			int y = operands.pop();
+			switch (o) {
+			case '+':
+				operands.push(y + x);
+				break;
+			case '-':
+				operands.push(y - x);
+				break;
+			case '*':
+				operands.push(y * x);
+				break;
+			case '/':
+				if (x == 0) {
+					std::cout << "ERROR\n";
+					return;
+				}
+				operands.push(y / x);
+				break;
+			}
+		}
+		else if (onp[i] == 'N') {
+			char o = onp[i];
+			std::cout << o << " ";
+			operands.printStack();
+			int x = operands.pop();
+			operands.push(-x);
+		}
 	}
-	return result;
-}*/
+	std::cout << operands.peek() << '\n';
+}
 
 
 int main()
 {
-	MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
-	MyString onp = toONP(input);
-	std::cout << onp;
+	//MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
+	//MyString onp = toONP(input);
+	//std::cout << onp << '\n';
+	//calculate(onp);
 
+	
+	int n;
+	std::cin >> n >> std::ws;
+
+	for (int i = 0; i < n; i++) {
+		MyString* input = new MyString;
+		input->read();
+		MyString onp = toONP(*input);
+		std::cout << onp << '\n';
+		calculate(onp);
+		std::cout << "\n";
+		delete input;
+	}
+	
 	return 0;
 }
 
