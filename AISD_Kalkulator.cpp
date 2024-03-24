@@ -31,7 +31,7 @@ public:
 	~MyString() {
 		if (buffer != nullptr) {
 			delete[] buffer;
-			buffer = nullptr; // Ustawienie wskaŸnika na nullptr, aby unikn¹æ problemów z ponownym zwalnianiem pamiêci
+			buffer = nullptr; // Ustawienie wskaznika na nullptr, aby uniknanie problemow z ponownym zwalnianiem pamieci
 		}
 	}
 
@@ -170,12 +170,28 @@ public:
 
 };
 
+bool isFunction(const MyString& s) {
+	if (s[0] == 'N' && s.length() == 1)
+		return true;
+	else 
+		return false;
+	
+	/*
+	if (s[0] == 'M' && s[1] == 'I' && s[2] == 'N' && s[3] == '(')
+		return true;
+	else if (s[0] == 'M' && s[1] == 'A' && s[2] == 'X' && s[3] == '(')
+		return true;
+	else
+		return false;
+		*/
+}
+
 bool isOperator(char c) {
 	return c == '+' || c == '-' || c == '*' || c == '/';
 }
 
 bool isNumber(char c) {
-	return c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9';
+	return c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9';
 }
 
 int precedence(char c) {
@@ -184,6 +200,9 @@ int precedence(char c) {
 	}
 	else if (c == '*' || c == '/') {
 		return 2;
+	}
+	else if (c == 'N') { 
+		return 3;
 	}
 	return 0;
 }
@@ -194,7 +213,7 @@ MyString toONP(const MyString& input) {
 	MyString currentWord;
 
 	for (int i = 0; i < input.length(); i++) {
-		char currentChar = input[i]; // Pobierz pierwszy znak z obiektu MyString
+		char currentChar = input[i];
 		currentWord = currentWord + currentChar;
 		if (isNumber(input[i]))
 		{
@@ -206,7 +225,11 @@ MyString toONP(const MyString& input) {
 			i = i + j;
 			output = output + currentWord + " ";
 		}
-		else if (currentChar != ' ') { // Pomijaj spacje
+		else if (isFunction(currentWord)) {
+			operators.push(currentWord);
+			currentWord = "";
+		}
+		else if (currentChar != ' ') {
 			if (currentChar == '(') {
 				operators.push(currentChar);
 			}
@@ -214,7 +237,7 @@ MyString toONP(const MyString& input) {
 				while (!operators.isEmpty() && operators.peek()[0] != '(') {
 					output = output + operators.pop()[0] + " ";
 				}
-				operators.pop(); // Usuñ '(' ze stosu
+				operators.pop();
 			}
 			else if (isOperator(currentChar)) {
 				while (!operators.isEmpty() && precedence(currentChar) <= precedence(operators.peek()[0])) {
@@ -226,7 +249,6 @@ MyString toONP(const MyString& input) {
 		currentWord = "";
 	}
 
-	// Dodaj pozosta³e operatory na stosie do output
 	while (!operators.isEmpty()) {
 		output = output + operators.pop()[0] + " ";
 	}
@@ -234,11 +256,34 @@ MyString toONP(const MyString& input) {
 	return output;
 }
 
+/*int calculate(MyString onp) {
+	int result = 0;
+	
+	for (int i = 0; i < onp.length(); i++) {
+		
+	}
+	return result;
+}*/
+
+
 int main()
 {
-	MyString input("12 + ( 345 + 6 ) * 78 .");
+	MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
 	MyString onp = toONP(input);
-	std::cout << "onp(" << onp << ")";
+	std::cout << onp;
 
 	return 0;
 }
+
+/*
+input: "( 5 - 4 ) / N 4 / N ( 0 + 9 ) ."
+
+output: "5  4  -  4  N  /  0  9  +  N  /" 
+		"- 4 5"
+		"N 4 1"
+		"/ -4 1"
+		"+ 9 0 0"
+		"N 9 0"
+		"/ -9 0"
+		"0"
+*/
