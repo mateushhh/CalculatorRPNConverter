@@ -2,8 +2,6 @@
 #include <iostream>
 #include <cstring>
 
-#define MAXLENGTH 256
-
 class MyString {
 private:
 	char* buffer;
@@ -40,19 +38,24 @@ public:
 	}
 
 	void read() {
-		char* temp = new char[MAXLENGTH];
-		std::cin.getline(temp, MAXLENGTH);
-		this->size = std::strlen(temp);
-
-		//for (int i = 0; temp[i] != '.' && temp[i] != '\0'; i++) {
-		//	temp[i] = std::toupper(temp[i]);
-		//}
+		char ch;
+		int index = 0;
 
 		delete[] buffer;
-		buffer = new char[this->size + 1];
-		std::strcpy(buffer, temp);
+		buffer = new char[1]; 
+		buffer[0] = '\0'; 
 
-		delete[] temp;
+		while (std::cin.get(ch) && ch != '.') {
+			char* temp = new char[index + 2]; 
+			std::strcpy(temp, buffer); 
+			temp[index] = ch;
+			temp[++index] = '\0'; 
+
+			delete[] buffer; 
+			buffer = temp; 
+		}
+
+		this->size = index;
 	}
 
 	char& operator[](int index) {
@@ -321,6 +324,10 @@ MyString toONP(const MyString& input) {
 void calculate(MyString onp) {
 	StackInt operands;
 
+	if (onp.length() == 0) {
+		return;
+	}
+
 	for (int i = 0; i < onp.length(); i++) {
 
 		if (isNumber(onp[i])) {
@@ -371,25 +378,45 @@ void calculate(MyString onp) {
 
 int main()
 {
-	//MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
-	//MyString onp = toONP(input);
-	//std::cout << onp << '\n';
-	//calculate(onp);
+	/* do testow
+	MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
+	MyString onp = toONP(input);
+	std::cout << input << '\n' << onp << '\n';
+	calculate(onp);
+	*/
 
-	
+
+	/* na stos 5/10 */
 	int n;
 	std::cin >> n >> std::ws;
+	for (int i = 0; i < n; i++) {
+		MyString* input = new MyString;
+		input->read();
+
+		MyString onp = toONP(*input);
+		std::cout << onp << '\n';
+
+		calculate(onp);
+		delete input;
+	}
+	/**/
+
+	/* do wyciagania info o testach 
+	int n;
+	std::cin >> n >> std::ws;
+	std::cout << n << '\n';
 
 	for (int i = 0; i < n; i++) {
 		MyString* input = new MyString;
 		input->read();
+
 		MyString onp = toONP(*input);
-		std::cout << onp << '\n';
-		calculate(onp);
-		std::cout << "\n";
+		std::cout << "INPUT[" << i << "]: \"" << *input <<"\"\n";
+
 		delete input;
 	}
-	
+	*/
+
 	return 0;
 }
 
