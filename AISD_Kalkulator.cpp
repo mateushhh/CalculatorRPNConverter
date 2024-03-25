@@ -37,7 +37,7 @@ public:
 		return this->size;
 	}
 
-	void read() {
+	void read() { // TODO: Mozna byloby to lepiej zoptymalizowac + dodaæ od razu przerobienie na onp tutaj
 		char ch;
 		int index = 0;
 
@@ -56,6 +56,7 @@ public:
 		}
 
 		this->size = index;
+		//konwersja na onp tu wsadziæ np
 	}
 
 	char& operator[](int index) {
@@ -235,20 +236,8 @@ public:
 	}
 };
 
-bool isFunction(const MyString& s) {
-	if (s[0] == 'N' && s.length() == 1)
-		return true;
-	else 
-		return false;
-	
-	/*
-	if (s[0] == 'M' && s[1] == 'I' && s[2] == 'N' && s[3] == '(')
-		return true;
-	else if (s[0] == 'M' && s[1] == 'A' && s[2] == 'X' && s[3] == '(')
-		return true;
-	else
-		return false;
-		*/
+bool isFunction(const char c) {
+	return c == 'M' || c == 'I';
 }
 
 bool isOperator(char c) {
@@ -266,7 +255,7 @@ int precedence(char c) {
 	else if (c == '*' || c == '/') {
 		return 2;
 	}
-	else if (c == 'N') { 
+	else if (c == 'N' || c == 'M') {
 		return 3;
 	}
 	return 0;
@@ -280,30 +269,78 @@ MyString toONP(const MyString& input) {
 	for (int i = 0; i < input.length(); i++) {
 		char currentChar = input[i];
 		currentWord = currentWord + currentChar;
-		if (isNumber(input[i]))
-		{
-			int j = 1;
-			for (j; input[i + j] != ' '; j++) {
-				currentChar = input[i + j];
-				currentWord = currentWord + currentChar;
+
+		if (currentChar != ' ') {
+			if (isNumber(input[i]))
+			{
+				for (++i; input[i] != ' '; i++) {
+					currentChar = input[i];
+					currentWord = currentWord + currentChar;
+				}
+				output = output + currentWord + " ";
 			}
-			i = i + j;
-			output = output + currentWord + " ";
-		}
-		else if (isFunction(currentWord)) {
-			operators.push(currentWord);
-			currentWord = "";
-		}
-		else if (currentChar != ' ') {
-			if (currentChar == '(') {
+
+			else if (isFunction(currentChar)) {
+				int bracketCounter = 1;
+				int wordCounter = 1;
+				MyString currentFunction;
+
+				for (++i; input[i-1] != '('; i++) {
+					currentChar = input[i];
+					currentWord = currentWord + currentChar;
+				}
+				currentWord[currentWord.length()-2] = '\0';
+				
+				currentFunction = currentWord;
+				currentWord = "";
+
+				while (bracketCounter != 0) {
+					currentChar = input[++i];
+					currentWord = currentWord + currentChar;
+
+					if (currentChar == '(') {
+						bracketCounter++;
+					}
+					else if (currentChar == ')') {
+						--bracketCounter;
+						if (bracketCounter == 0)
+							currentWord[currentWord.length()-1] = '\0';
+					}
+					else if (currentChar == ',') {
+						if (bracketCounter == 1) {
+							wordCounter++;
+						}
+					}
+				}
+				
+				if(currentFunction[0]=='M')
+					output = output + toONP(currentWord) + " " + currentFunction + ((char)(wordCounter) + 48) + " ";
+				else 
+					output = output + toONP(currentWord) + " " + currentFunction + " ";
+			}
+
+			else if (currentChar == 'N') {
 				operators.push(currentChar);
 			}
+
+			else if (currentChar == '(') {
+				operators.push(currentChar);
+			}
+
 			else if (currentChar == ')') {
 				while (!operators.isEmpty() && operators.peek()[0] != '(') {
 					output = output + operators.pop()[0] + " ";
 				}
 				operators.pop();
 			}
+
+			else if (currentChar == ',') {
+				while (!operators.isEmpty()) {
+					output = output + operators.pop()[0] + " ";
+				}
+				operators.pop();
+			}
+
 			else if (isOperator(currentChar)) {
 				while (!operators.isEmpty() && precedence(currentChar) <= precedence(operators.peek()[0])) {
 					output = output + operators.pop()[0] + " ";
@@ -317,6 +354,8 @@ MyString toONP(const MyString& input) {
 	while (!operators.isEmpty()) {
 		output = output + operators.pop()[0] + " ";
 	}
+	
+	output[output.length() - 1] = '\0';
 
 	return output;
 }
@@ -371,6 +410,49 @@ void calculate(MyString onp) {
 			int x = operands.pop();
 			operands.push(-x);
 		}
+		else if (onp[i] == 'I') {
+			std::cout << "IF ";
+			operands.printStack();
+			int f = operands.pop();
+			int t = operands.pop();
+			int x = operands.pop();
+			if (x > 0)
+				operands.push(t);
+			else
+				operands.push(f);
+		}
+		else if (onp[i] == 'M') {
+			int j = i + 3;
+			int n = ((int)onp[j] - 48);
+
+			while (onp[j + 1] != ' ' && onp[j + 1] != '\0') {
+				n = (n * 10) + ((int)onp[++j] - 48);
+			}
+
+			if (onp[i + 1] == 'I') {
+				std::cout << "MIN" << n << " ";
+				operands.printStack();
+				int min = operands.pop();
+				for (int j = 0; j < n-1; j++) {
+					int temp = operands.pop();
+					if (temp < min)
+						min = temp;
+				}
+				operands.push(min);
+			}
+			else {
+				std::cout << "MAX" << n << " ";
+				operands.printStack();
+				int max = operands.pop();
+				for (int j = 0; j < n-1; j++) {
+					int temp = operands.pop();
+					if (temp > max)
+						max = temp;
+				}
+				operands.push(max);
+			}
+			i += 4;
+		}
 	}
 	std::cout << operands.peek() << '\n';
 }
@@ -378,15 +460,15 @@ void calculate(MyString onp) {
 
 int main()
 {
-	/* do testow
-	MyString input("( 5 - 4 ) / N 4 / N ( 0 + 9 ) .");
+	/* do testow 
+	MyString input("MIN ( 100 , MAX ( 1 , 34 , 2 ) , 80 ,  MIN ( 66 , 36  , 35 , 77 ) , 50 , 60 ) .");
 	MyString onp = toONP(input);
 	std::cout << input << '\n' << onp << '\n';
 	calculate(onp);
-	*/
+	/**/
 
 
-	/* na stos 5/10 */
+	/* na stos 5 / 10 */
 	int n;
 	std::cin >> n >> std::ws;
 	for (int i = 0; i < n; i++) {
@@ -421,14 +503,17 @@ int main()
 }
 
 /*
-input: "( 5 - 4 ) / N 4 / N ( 0 + 9 ) ."
+input: 
+		"IF ( N 4 , IF ( 3 , 7 , 9 ) , N ( 8 ) ) + N ( 5 * 9 ) ."
+output: 
+		4  N  3  7  9  IF  8  N  IF  5  9  *  N  +
+		N 4
+		IF 9 7 3 -4
+		N 8 7 -4
+		IF -8 7 -4
+		* 9 5 -8
+		N 45 -8
+		+ -45 -8
+		-53
 
-output: "5  4  -  4  N  /  0  9  +  N  /" 
-		"- 4 5"
-		"N 4 1"
-		"/ -4 1"
-		"+ 9 0 0"
-		"N 9 0"
-		"/ -9 0"
-		"0"
 */
