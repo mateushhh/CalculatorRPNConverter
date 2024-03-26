@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+ï»¿#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <cstring>
 
@@ -37,26 +37,36 @@ public:
 		return this->size;
 	}
 
-	void read() { // TODO: Mozna byloby to lepiej zoptymalizowac + dodaæ od razu przerobienie na onp tutaj
+	void read() {
+		int initialBufferSize = 64; // PoczÄ…tkowy rozmiar bufora
+
 		char ch;
 		int index = 0;
 
 		delete[] buffer;
-		buffer = new char[1]; 
-		buffer[0] = '\0'; 
+
+		buffer = new char[initialBufferSize];
+		buffer[0] = '\0';
 
 		while (std::cin.get(ch) && ch != '.') {
-			char* temp = new char[index + 2]; 
-			std::strcpy(temp, buffer); 
-			temp[index] = ch;
-			temp[++index] = '\0'; 
+			if (index + 1 >= initialBufferSize) {
+				int newBufferSize = initialBufferSize * 2;
+				char* temp = new char[newBufferSize];
 
-			delete[] buffer; 
-			buffer = temp; 
+				std::strcpy(temp, buffer);
+
+				delete[] buffer;
+
+				buffer = temp;
+
+				initialBufferSize = newBufferSize;
+			}
+
+			buffer[index++] = ch;
+			buffer[index] = '\0'; 
 		}
 
-		this->size = index;
-		//konwersja na onp tu wsadziæ np
+		size = index;
 	}
 
 	char& operator[](int index) {
@@ -111,7 +121,7 @@ public:
 	MyString data;
 	ElementString* next;
 
-	ElementString(const MyString& data, ElementString* next = nullptr) 
+	ElementString(const MyString& data, ElementString* next = nullptr)
 		: data(data), next(next) {}
 };
 
@@ -285,12 +295,12 @@ MyString toONP(const MyString& input) {
 				int wordCounter = 1;
 				MyString currentFunction;
 
-				for (++i; input[i-1] != '('; i++) {
+				for (++i; input[i - 1] != '('; i++) {
 					currentChar = input[i];
 					currentWord = currentWord + currentChar;
 				}
-				currentWord[currentWord.length()-2] = '\0';
-				
+				currentWord[currentWord.length() - 2] = '\0';
+
 				currentFunction = currentWord;
 				currentWord = "";
 
@@ -304,7 +314,7 @@ MyString toONP(const MyString& input) {
 					else if (currentChar == ')') {
 						--bracketCounter;
 						if (bracketCounter == 0)
-							currentWord[currentWord.length()-1] = '\0';
+							currentWord[currentWord.length() - 1] = '\0';
 					}
 					else if (currentChar == ',') {
 						if (bracketCounter == 1) {
@@ -312,10 +322,12 @@ MyString toONP(const MyString& input) {
 						}
 					}
 				}
-				
-				if(currentFunction[0]=='M')
-					output = output + toONP(currentWord) + " " + currentFunction + ((char)(wordCounter) + 48) + " ";
-				else 
+
+				if (currentFunction[0] == 'M') {
+					output = output + toONP(currentWord) + " " + currentFunction;
+					output = output + ((char)(wordCounter)+48) + ' ';
+				}
+				else
 					output = output + toONP(currentWord) + " " + currentFunction + " ";
 			}
 
@@ -354,7 +366,7 @@ MyString toONP(const MyString& input) {
 	while (!operators.isEmpty()) {
 		output = output + operators.pop()[0] + " ";
 	}
-	
+
 	output[output.length() - 1] = '\0';
 
 	return output;
@@ -433,7 +445,7 @@ void calculate(MyString onp) {
 				std::cout << "MIN" << n << " ";
 				operands.printStack();
 				int min = operands.pop();
-				for (int j = 0; j < n-1; j++) {
+				for (int j = 0; j < n - 1; j++) {
 					int temp = operands.pop();
 					if (temp < min)
 						min = temp;
@@ -444,7 +456,7 @@ void calculate(MyString onp) {
 				std::cout << "MAX" << n << " ";
 				operands.printStack();
 				int max = operands.pop();
-				for (int j = 0; j < n-1; j++) {
+				for (int j = 0; j < n - 1; j++) {
 					int temp = operands.pop();
 					if (temp > max)
 						max = temp;
@@ -460,15 +472,14 @@ void calculate(MyString onp) {
 
 int main()
 {
-	/* do testow 
+	/* do testow
 	MyString input("MIN ( 100 , MAX ( 1 , 34 , 2 ) , 80 ,  MIN ( 66 , 36  , 35 , 77 ) , 50 , 60 ) .");
 	MyString onp = toONP(input);
 	std::cout << input << '\n' << onp << '\n';
 	calculate(onp);
 	/**/
 
-
-	/* na stos 5 / 10 */
+	/* na stos 9/10 */
 	int n;
 	std::cin >> n >> std::ws;
 	for (int i = 0; i < n; i++) {
@@ -483,37 +494,5 @@ int main()
 	}
 	/**/
 
-	/* do wyciagania info o testach 
-	int n;
-	std::cin >> n >> std::ws;
-	std::cout << n << '\n';
-
-	for (int i = 0; i < n; i++) {
-		MyString* input = new MyString;
-		input->read();
-
-		MyString onp = toONP(*input);
-		std::cout << "INPUT[" << i << "]: \"" << *input <<"\"\n";
-
-		delete input;
-	}
-	*/
-
 	return 0;
 }
-
-/*
-input: 
-		"IF ( N 4 , IF ( 3 , 7 , 9 ) , N ( 8 ) ) + N ( 5 * 9 ) ."
-output: 
-		4  N  3  7  9  IF  8  N  IF  5  9  *  N  +
-		N 4
-		IF 9 7 3 -4
-		N 8 7 -4
-		IF -8 7 -4
-		* 9 5 -8
-		N 45 -8
-		+ -45 -8
-		-53
-
-*/
