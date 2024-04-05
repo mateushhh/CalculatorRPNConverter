@@ -2,6 +2,7 @@
 	#include <iostream>
 	#include <cstring>
 
+	class DynamicArray;
 	class MyString;
 	class ElementString;
 	class StackString;
@@ -11,7 +12,6 @@
 	bool isNumber(char c);
 	int precedence(char c);
 
-	MyString stringToONP(const MyString& input);
 
 	class DynamicArray {
 	private:
@@ -54,22 +54,20 @@
 	public:
 		char* buffer;
 		int size;
-		int capacity = 16;
+		int capacity = 64;
 
 		MyString(const char* string = "") {
 			this->size = std::strlen(string);
 			setCapacityNeeded(this->size);
 			buffer = new char[this->capacity];
-			std::strcpy(buffer, string);
-			buffer[size] = '\0';
+			std::memcpy(buffer, string, this->size + 1);
 		}
 
 		MyString(const MyString& other) {
 			this->size = std::strlen(other.buffer);
 			setCapacityNeeded(this->size);
 			buffer = new char[this->capacity];
-			std::strcpy(buffer, other.buffer);
-			buffer[size] = '\0';
+			std::memcpy(buffer, other.buffer, this->size + 1);
 		}
 
 		MyString(const char other) {
@@ -99,7 +97,7 @@
 
 		void resize() {
 			char* newBuffer = new char[capacity];
-			std::strcpy(newBuffer, buffer);
+			std::memcpy(newBuffer, buffer, this->size + 1);
 			delete[] buffer;
 			buffer = newBuffer;
 			buffer[this->size] = '\0';
@@ -119,9 +117,8 @@
 					setCapacityNeeded(this->size + other.size);
 				}
 				resize();
-				this->size = std::strlen(other.buffer);
-				std::strcpy(this->buffer, other.buffer);
-				this->buffer[this->size] = '\0';
+				this->size = other.size;
+				std::memcpy(this->buffer, other.buffer, this->size + 1);
 			}
 			return *this;
 		}
@@ -139,9 +136,9 @@
 			resize();
 			this->size += s.size;
 			if (this->size == 0)
-				std::strcpy(this->buffer, s.buffer);
+				std::memcpy(this->buffer, s.buffer, s.size + 1);
 			else
-				std::strcat(this->buffer, s.buffer);
+				std::memcpy(this->buffer + this->size - s.size, s.buffer, s.size + 1);
 
 			this->buffer[this->size] = '\0';
 
@@ -152,9 +149,6 @@
 			out << string.buffer;
 			return out;
 		}
-
-		void read();
-
 	};
 
 	class ElementString {
@@ -285,6 +279,69 @@
 		}
 	};
 
+	class StringQueue {
+	private:
+		ElementString* firstNode;
+		ElementString* lastNode;
+
+	public:
+		StringQueue() : firstNode(nullptr) , lastNode(nullptr) {}
+
+		~StringQueue() {
+			while (!isEmpty()) {
+				dequeue();
+			}
+		}
+
+		void enqueue(MyString value) {
+			ElementString* newNode = new ElementString(value, nullptr); 
+
+			if (isEmpty()) {
+				firstNode = lastNode = newNode;
+			}
+			else {
+				lastNode->next = newNode;
+				lastNode = newNode; 
+			}
+		}
+
+		MyString dequeue() {
+			if(!isEmpty()){
+				MyString frontData = firstNode->data;
+				ElementString* temp = firstNode;
+				firstNode = firstNode->next;
+				delete temp;
+				return frontData;
+			}
+
+			if (isEmpty()) {
+				lastNode = nullptr;
+				return MyString();
+			}
+		}
+
+		MyString front() const {
+			return firstNode->data;
+		}
+
+		bool isEmpty() const {
+			return firstNode == nullptr;
+		}
+
+		void printQueue() const {
+			if (isEmpty()) {
+				std::cout << "Queue is empty.\n";
+				return;
+			}
+			ElementString* current = firstNode;
+			while (current != nullptr) { 
+				std::cout << current->data << " "; 
+				current = current->next; 
+			}
+			std::cout << std::endl;
+		}
+	};
+
 	bool isFunction(const char c) {
 		return c == 'M' || c == 'I';
 	}
@@ -311,30 +368,28 @@
 	}
 
 
-	void calculate(MyString onp) {
+	void calculate(StringQueue onp) {
 		StackInt operands;
 
-		if (onp.length() == 0) {
-			return;
-		}
+		while (!onp.isEmpty()) {
 
-		for (int i = 0; i < onp.length(); i++) {
-
-			if (isNumber(onp[i])) {
-				int currentNumber = ((int)onp[i] - 48);
-				while (onp[i + 1] != ' ') {
+			if (isNumber(onp.front()[0])) {
+				int currentNumber = ((int)onp.front()[0] - 48);
+				int i = 0;
+				while (onp.front()[i + 1] != ' ' && onp.front()[i+1] != '\0') {
 					++i;
-					currentNumber = (currentNumber * 10) + ((int)onp[i] - 48);
+					currentNumber = (currentNumber * 10) + ((int)onp.front()[i] - 48);  ///tutaj dokoñczyæ :DDDD
 				}
+				onp.dequeue();
 				operands.push(currentNumber);
 			}
 
-			if (isOperator(onp[i])) {
-				char o = onp[i];
-				std::cout << o << " ";
+			if (isOperator(onp.front()[0])) {
+				char o = onp.dequeue()[0];
+				printf("%c ", o);
 				operands.printStack();
 				int x = operands.pop();
-				int y = operands.pop();
+ 				int y = operands.pop();
 				switch (o) {
 				case '+':
 					operands.push(y + x);
@@ -347,22 +402,23 @@
 					break;
 				case '/':
 					if (x == 0) {
-						std::cout << "ERROR\n";
+						printf("ERROR\n");
 						return;
 					}
 					operands.push(y / x);
 					break;
 				}
 			}
-			else if (onp[i] == 'N') {
-				char o = onp[i];
-				std::cout << o << " ";
+			else if (onp.front()[0] == 'N') {
+				char o = onp.dequeue()[0];
+				printf("%c ", o);
 				operands.printStack();
 				int x = operands.pop();
 				operands.push(-x);
 			}
-			else if (onp[i] == 'I') {
-				std::cout << "IF ";
+			else if (onp.front()[0] == 'I') {
+				onp.dequeue();
+				printf("IF ");
 				operands.printStack();
 				int f = operands.pop();
 				int t = operands.pop();
@@ -372,16 +428,17 @@
 				else
 					operands.push(f);
 			}
-			else if (onp[i] == 'M') {
-				int j = i + 3;
-				int n = ((int)onp[j] - 48);
+			else if (onp.front()[0] == 'M') {
+				int j = 3;
+				int n = ((int)onp.front()[j] - 48);
 
-				while (onp[j + 1] != ' ' && onp[j + 1] != '\0') {
-					n = (n * 10) + ((int)onp[++j] - 48);
+				while (onp.front()[j + 1] != ' ' && onp.front()[j + 1] != '\0') {
+					n = (n * 10) + ((int)onp.front()[++j] - 48);
 				}
 
-				if (onp[i + 1] == 'I') {
-					std::cout << "MIN" << n << " ";
+				if (onp.front()[1] == 'I') {
+					printf("MIN%d ", n);
+					onp.dequeue();
 					operands.printStack();
 					int min = operands.pop();
 					for (j = 0; j < n - 1; j++) {
@@ -392,7 +449,8 @@
 					operands.push(min);
 				}
 				else {
-					std::cout << "MAX" << n << " ";
+					printf("MAX%d ", n);
+					onp.dequeue();
 					operands.printStack();
 					int max = operands.pop();
 					for (j = 0; j < n - 1; j++) {
@@ -402,48 +460,48 @@
 					}
 					operands.push(max);
 				}
-				i += 4;
 			}
 		}
-		std::cout << operands.peek() << '\n';
+		printf("%d\n", operands.peek());
 	}
 
+
 	
-	void readToONP(MyString*& result) {
+	StringQueue readToONP() {
 		StackString operators;
-		MyString output;
-		MyString currentWord; 
-		DynamicArray wordCount(4);
+		MyString currentWord;
+		MyString temp;
+		DynamicArray wordCount(8);
+		StringQueue output;
 		int depth = 0;
 
 		char currentChar = ' ';
 		while (currentChar != '.') {
-			std::cin.get(currentChar);
+			scanf("%c", &currentChar);
 			currentWord += currentChar;
 
 			if (currentChar != ' ') {
 				if (isNumber(currentChar))
 				{
-					std::cin.get(currentChar);
+					scanf("%c", &currentChar);
 					while (currentChar != ' ') {
 						currentWord += currentChar;
-						std::cin.get(currentChar);
+						scanf("%c", &currentChar);
 					}
-					output += currentWord;
-					output += ' ';
+					output.enqueue(currentWord);
 				}
 				else if (isFunction(currentChar)) {
 					MyString currentFunction;
 
-					std::cin.get(currentChar);
+					scanf("%c", &currentChar);
 					while (currentChar != ' ') {
 						currentWord += currentChar;
-						std::cin.get(currentChar);
+						scanf("%c", &currentChar);
 					}
 
 					currentFunction = currentWord;
-					currentWord = "";
-					
+					currentWord.size = 0;
+
 					if (currentFunction[0] == 'M') {
 						operators.push(currentFunction);
 					}
@@ -461,103 +519,98 @@
 				else if (currentChar == ')') {
 					while (!operators.isEmpty() && operators.peek()[0] != '(') {
 						if (operators.peek()[0] == 'M') {
-							output += operators.pop();
-							output += (char)(wordCount[depth+1]) + 48;
-							wordCount[depth+1] = 1;
+
+							temp += operators.pop();
+							temp += (char)(wordCount[depth + 1]) + 48;
+							output.enqueue(temp);
+							temp = "";
+
+							wordCount[depth + 1] = 1;
 						}
 						else if (operators.peek()[0] == 'I') {
 							wordCount[depth + 1] -= 2;
-							output += operators.pop();
+							output.enqueue(operators.pop());
 						}
 						else
-							output += operators.pop();
-						output += ' ';
+							output.enqueue(operators.pop());
 					}
 					depth--;
 					operators.pop();
 				}
 				else if (currentChar == ',') {
 					wordCount[depth] += 1;
-					while (!operators.isEmpty() && operators.peek()[0] != '(' ) {
+					while (!operators.isEmpty() && operators.peek()[0] != '(') {
 						if (operators.peek()[0] == 'M') {
-							output += operators.pop();
-							output += (char)(wordCount[depth+1]) + 48;
-							wordCount[depth+1] = 1;
+							temp += operators.pop();
+							temp += (char)(wordCount[depth + 1]) + 48;
+							output.enqueue(temp);
+
+							wordCount[depth + 1] = 1;
+							temp = "";
 						}
 						else if (operators.peek()[0] == 'I') {
 							wordCount[depth + 1] -= 2;
-							output += operators.pop();
+							output.enqueue(operators.pop());
 						}
 						else
-							output += operators.pop();
-						output += ' ';
+							output.enqueue(operators.pop());
 					}
 				}
 				else if (isOperator(currentChar)) {
 					while (!operators.isEmpty() && precedence(currentChar) <= precedence(operators.peek()[0])) {
 						if (operators.peek()[0] == 'M') {
-							output += operators.pop();
-							output += (char)(wordCount[depth+1]) + 48;
-							wordCount[depth+1] = 1;
+							temp += operators.pop();
+							temp += (char)(wordCount[depth + 1]) + 48;
+							output.enqueue(temp);
+
+							wordCount[depth + 1] = 1;
+							temp = "";
 						}
 						else if (operators.peek()[0] == 'I') {
 							wordCount[depth + 1] -= 2;
-							output += operators.pop();
+							output.enqueue(operators.pop());
 						}
 						else
-							output += operators.pop();
-						output += ' ';
+							output.enqueue(operators.pop());
 					}
 					operators.push(currentChar);
 				}
 			}
-			currentWord = "";
+			currentWord.size = 0;
 		}
 
 		while (!operators.isEmpty()) {
 			if (operators.peek()[0] == 'M') {
-				output += operators.pop();
-				output += (char)(wordCount[depth+1]) + 48;
-				wordCount[depth+1] = 1;
+				temp += operators.pop();
+				temp += (char)(wordCount[depth + 1]) + 48;
+				output.enqueue(temp);
+
+				wordCount[depth + 1] = 1;
+				temp = "";
 			}
 			else if (operators.peek()[0] == 'I') {
 				wordCount[depth + 1] -= 2;
-				output += operators.pop();
+				output.enqueue(operators.pop());
 			}
 			else
-				output += operators.pop();
-			output += ' ';
+				output.enqueue(operators.pop());
 		}
 
-		output[output.length() - 1] = '\0';
-		delete[] result->buffer;
-		result->buffer = new char[output.length() + 1];
-		strcpy(result->buffer, output.buffer);
+		return output;
 	};
 
 	int main()
 	{
-		/* do testow
-		MyString input("MIN ( 100 , MAX ( 1 , 34 , 2 ) , 80 ,  MIN ( 66 , 36  , 35 , 77 ) , 50 , 60 ) .");
-		MyString onp = stringToONP(input);
-		std::cout << input << '\n' << onp << '\n';
-		calculate(onp);
-		/**/
-
-		/* na stos 9/10  */
+		
 		int n;
 		std::cin >> n >> std::ws;
+
 		for (int i = 0; i < n; i++) {
-			MyString* onp = new MyString;
-			readToONP(onp);
-
-			std::cout << *onp << '\n';
-
-			calculate(*onp);
-			delete onp;
+			
+			//readToONP().printQueue();
+			calculate(readToONP());
+			//calculate(*onp);
 		}
-		/**/
-
-
+		
 		return 0;
 	}
