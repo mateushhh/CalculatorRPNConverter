@@ -91,11 +91,11 @@ public:
 
 	MyString reverse() {
 		MyString r;
-		for (int i = size - 1; i >= 0; i--) { // Poprawiamy pêtlê aby iterowaæ od ostatniego do pierwszego indeksu
-			r += buffer[i]; // Dodajemy znaki w odwrotnej kolejnoœci do nowego obiektu MyString
+		for (int i = size - 1; i >= 0; i--) { 
+			r += buffer[i];
 		}
-		*this = r; // Zapisujemy odwrócony ³añcuch znaków do bie¿¹cego obiektu
-		return r; // Zwracamy odwrócony ³añcuch znaków
+		*this = r;
+		return r;
 	}
 
 	void setCapacityNeeded(int s) {
@@ -479,8 +479,6 @@ void calculate(StringQueue& onp) {
 	}
 	printf("%d\n", operands.peek());
 }
-
-
 
 void readToONP(StringQueue& output) {
 	StackString operators;
